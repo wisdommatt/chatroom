@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -30,10 +31,21 @@ func NewHandler(logger *logrus.Logger) *Handler {
 func (h *Handler) SetupRoutes() {
 	h.logger.Info("Setting up routes")
 	h.Router = chi.NewRouter()
-	h.Router.Get("/websocket/chat", wsChatHandler())
-}
+	h.Router.Use(middleware.RealIP)
+	h.Router.Use(middleware.RequestID)
+	h.Router.Use(middleware.Logger)
 
-func wsChatHandler() http.HandlerFunc {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-	})
+	// wsChannels = map[string]chan *websocket.Conn{
+	// 	"join": make(chan *websocket.Conn),
+	// 	"leave": make(chan *websocket.Conn),
+	// 	"getClients": make(chan *websocket.Conn),
+	// }
+
+	chatHandler := newChatHandler(h.logger, h.wsUpgrader)
+
+	// joinChatChan, leaveChatChan := make(chan *websocket.Conn), make(chan *websocket.Conn)
+	// getClients := make(chan map[*websocket.Conn]bool)
+	go chatHandler.wsConnectionListener()
+	// go wsConnectionListener(h.logger, joinChatChan, leaveChatChan, getClients)(make(map[*websocket.Conn]bool))
+	h.Router.Get("/websocket/chat", chatHandler.handleEndpoint())
 }
