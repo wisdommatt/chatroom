@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -12,12 +13,16 @@ import (
 )
 
 func TestWsChatHandler(t *testing.T) {
-	logger := &logrus.Logger{}
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.JSONFormatter{
+		PrettyPrint: true,
+	})
+
 	handler := NewHandler(logger)
 	chatHandler := newChatHandler(logger, handler.wsUpgrader)
 	go chatHandler.wsConnectionListener()
 
-	server := httptest.NewServer(http.HandlerFunc(chatHandler.handleEndpoint()))
+	server := httptest.NewServer(http.HandlerFunc(chatHandler.handleRequest))
 	defer server.Close()
 
 	var connection1 *websocket.Conn
@@ -51,30 +56,42 @@ func TestWsChatHandler(t *testing.T) {
 			defer connection2.Close()
 
 			for i := 0; i < 10; i++ {
-				err := connection1.WriteJSON(ChatMsg{
-					Message:    "Test Message",
-					SenderName: "Connection One",
-				})
+				msg := ChatMsg{
+					Message:    "Test Message 1 - " + strconv.Itoa(i),
+					SenderName: "Connection One - " + strconv.Itoa(i),
+				}
+				err := connection1.WriteJSON(msg)
 				require.Nil(t, err, err)
 
-				msg := ChatMsg{}
-				err = connection1.ReadJSON(&msg)
+				msg1 := ChatMsg{}
+				err = connection1.ReadJSON(&msg1)
 				require.Nil(t, err, err)
-				err = connection2.ReadJSON(&msg)
+				require.Exactly(t, msg.Message, msg1.Message)
+				require.Exactly(t, msg.SenderName, msg1.SenderName)
+
+				msg2 := ChatMsg{}
+				err = connection2.ReadJSON(&msg2)
 				require.Nil(t, err, err)
+				require.Exactly(t, msg1, msg2)
 			}
 			for i := 0; i < 10; i++ {
-				err := connection2.WriteJSON(ChatMsg{
-					Message:    "Test Message",
-					SenderName: "Connection Two",
-				})
+				msg := ChatMsg{
+					Message:    "Test Message 2 - " + strconv.Itoa(i),
+					SenderName: "Connection Two - " + strconv.Itoa(i),
+				}
+				err := connection2.WriteJSON(msg)
 				require.Nil(t, err, err)
 
-				msg := ChatMsg{}
-				err = connection1.ReadJSON(&msg)
+				msg1 := ChatMsg{}
+				err = connection1.ReadJSON(&msg1)
 				require.Nil(t, err, err)
-				err = connection2.ReadJSON(&msg)
+				require.Exactly(t, msg.Message, msg1.Message)
+				require.Exactly(t, msg.SenderName, msg1.SenderName)
+
+				msg2 := ChatMsg{}
+				err = connection2.ReadJSON(&msg2)
 				require.Nil(t, err, err)
+				require.Exactly(t, msg1, msg2)
 			}
 		})
 	}

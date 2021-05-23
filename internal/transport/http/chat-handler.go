@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -13,39 +14,49 @@ type ChatMsg struct {
 }
 
 type chatHandler struct {
-	logger   *logrus.Logger
-	upgrader websocket.Upgrader
-	clients  map[*websocket.Conn]bool
-	join     chan *websocket.Conn
-	leave    chan *websocket.Conn
-	dispatch chan ChatMsg
+	logger    *logrus.Logger
+	upgrader  websocket.Upgrader
+	clients   map[*websocket.Conn]bool
+	join      chan *websocket.Conn
+	leave     chan *websocket.Conn
+	broadcast chan ChatMsg
 }
 
 func newChatHandler(logger *logrus.Logger, upgrader websocket.Upgrader) *chatHandler {
 	return &chatHandler{
-		logger:   logger,
-		upgrader: upgrader,
-		clients:  make(map[*websocket.Conn]bool),
-		join:     make(chan *websocket.Conn),
-		leave:    make(chan *websocket.Conn),
-		dispatch: make(chan ChatMsg),
+		logger:    logger,
+		upgrader:  upgrader,
+		clients:   make(map[*websocket.Conn]bool),
+		join:      make(chan *websocket.Conn),
+		leave:     make(chan *websocket.Conn),
+		broadcast: make(chan ChatMsg),
 	}
 }
 
-func (h *chatHandler) handleEndpoint() http.HandlerFunc {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		wsConn, err := h.upgrader.Upgrade(rw, r, nil)
+func (h *chatHandler) handleRequest(rw http.ResponseWriter, r *http.Request) {
+	wsConn, err := h.upgrader.Upgrade(rw, r, nil)
+	if err != nil {
+		h.logger.WithError(err).Debug("Chat handler error")
+		return
+	}
+	defer wsConn.Close()
+	h.join <- wsConn
+	defer func() {
+		h.leave <- wsConn
+	}()
+	for {
+		msg := ChatMsg{}
+		err := wsConn.ReadJSON(&msg)
 		if err != nil {
-			h.logger.WithError(err).Info("Chat handler error")
-			return
+			h.logger.WithError(err).Debug("Chat websocket read message error ...")
+			break
 		}
-		h.join <- wsConn
-		defer func() {
-			h.leave <- wsConn
-		}()
-		go h.writer(wsConn, h.logger)
-		h.reader(wsConn, h.logger)
-	})
+		h.logger.WithFields(logrus.Fields{
+			"message": msg.Message,
+			"sender":  msg.SenderName,
+		}).Info("New chat message received")
+		h.broadcast <- msg
+	}
 }
 
 func (h *chatHandler) wsConnectionListener() {
@@ -60,34 +71,15 @@ func (h *chatHandler) wsConnectionListener() {
 			h.logger.Info("Client leaving ...")
 			delete(h.clients, client)
 
-		case msg := <-h.dispatch:
-			for client, _ := range h.clients {
-				err := client.WriteJSON(msg)
+		case msg := <-h.broadcast:
+			// converting msg to JSON bytes to make the message broadcast process faster.
+			msgJSONBytes, _ := json.Marshal(msg)
+			for client := range h.clients {
+				err := client.WriteMessage(websocket.TextMessage, msgJSONBytes)
 				if err != nil {
-					h.logger.WithError(err).Error("Dispatch chat message error")
+					h.logger.WithError(err).Debug("Broadcast chat message error")
 				}
 			}
 		}
 	}
-}
-
-func (h *chatHandler) reader(conn *websocket.Conn, logger *logrus.Logger) {
-	defer conn.Close()
-	for {
-		msg := ChatMsg{}
-		err := conn.ReadJSON(&msg)
-		if err != nil {
-			logger.WithError(err).Debug("Chat websocket read message error ...")
-			break
-		}
-		logger.WithFields(logrus.Fields{
-			"message": msg.Message,
-			"sender":  msg.SenderName,
-		}).Info("New chat message received")
-		h.dispatch <- msg
-	}
-}
-
-func (h *chatHandler) writer(conn *websocket.Conn, logger *logrus.Logger) {
-
 }

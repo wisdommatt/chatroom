@@ -33,6 +33,7 @@ func run() error {
 	if port == "" {
 		port = "3030"
 	}
+
 	server := http.Server{
 		Addr:         ":" + port,
 		Handler:      handler.Router,
@@ -44,6 +45,7 @@ func run() error {
 	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
 	serverErrChan := make(chan error, 1)
 	go func() {
+		logger.Info("Server running on port: " + port)
 		serverErrChan <- server.ListenAndServe()
 	}()
 

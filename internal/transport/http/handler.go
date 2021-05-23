@@ -35,17 +35,8 @@ func (h *Handler) SetupRoutes() {
 	h.Router.Use(middleware.RequestID)
 	h.Router.Use(middleware.Logger)
 
-	// wsChannels = map[string]chan *websocket.Conn{
-	// 	"join": make(chan *websocket.Conn),
-	// 	"leave": make(chan *websocket.Conn),
-	// 	"getClients": make(chan *websocket.Conn),
-	// }
-
 	chatHandler := newChatHandler(h.logger, h.wsUpgrader)
-
-	// joinChatChan, leaveChatChan := make(chan *websocket.Conn), make(chan *websocket.Conn)
-	// getClients := make(chan map[*websocket.Conn]bool)
 	go chatHandler.wsConnectionListener()
-	// go wsConnectionListener(h.logger, joinChatChan, leaveChatChan, getClients)(make(map[*websocket.Conn]bool))
-	h.Router.Get("/websocket/chat", chatHandler.handleEndpoint())
+
+	h.Router.Get("/websocket/chat", chatHandler.handleRequest)
 }
