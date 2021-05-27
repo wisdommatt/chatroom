@@ -55,3 +55,37 @@ func TestSaveChatRoom(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveMessage(t *testing.T) {
+	dotenv.LoadEnvironmentVariables("../../")
+	repo, tearDown := setupRepo(t)
+	defer tearDown()
+
+	testProcesses := map[string]func(t *testing.T){
+		"Correct process": func(t *testing.T) {
+			chatroom := ChatRoom{Name: "Welcome"}
+			err := repo.SaveChatRoom(&chatroom)
+			require.Nil(t, err, err)
+			msg := ChatMsg{
+				Message: "This is a message !",
+			}
+			err = repo.SaveMessage(chatroom.ID, &msg)
+			require.Nil(t, err, err)
+			require.NotEmpty(t, msg.ID)
+		},
+		"Incorrect process": func(t *testing.T) {
+			chatRoomID := "helloWorld"
+			msg := ChatMsg{
+				Message: "This is a sample message !",
+			}
+			err := repo.SaveMessage(chatRoomID, &msg)
+			require.NotNil(t, err, err)
+			require.NotEmpty(t, msg.ID)
+		},
+	}
+	for name, process := range testProcesses {
+		t.Run(name, func(t *testing.T) {
+			process(t)
+		})
+	}
+}
