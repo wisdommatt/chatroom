@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -53,6 +54,7 @@ func (h *chatHandler) handleRequest(chatRoomRepo chatroom.Repository) http.Handl
 				"sender":  msg.SenderName,
 			}).Info("New chat message received")
 			h.broadcast <- msg
+			msg.TimeSent = time.Now()
 			err = chatRoomRepo.SaveMessage("", &msg)
 			if err != nil {
 				h.logger.WithError(err).Error("Save chat message error !")
