@@ -1,8 +1,10 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -10,89 +12,95 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"github.com/wisdommatt/chatroom/internal/chatroom"
+	"github.com/wisdommatt/chatroom/test/mocks"
 )
 
 func TestWsChatHandler(t *testing.T) {
+	outFile, _ := os.Create("test.logs")
 	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{
-		PrettyPrint: true,
-	})
+	logger.SetOutput(outFile)
+	logger.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 
+	chatsCount := 0
 	handler := NewHandler(logger)
 	chatHandler := newChatHandler(logger, handler.wsUpgrader)
 	go chatHandler.wsConnectionListener()
 
-	server := httptest.NewServer(http.HandlerFunc(chatHandler.handleRequest))
-	defer server.Close()
-
-	var connection1 *websocket.Conn
-	var connection2 *websocket.Conn
 	testCases := map[string]struct {
-		connectionValid bool
-		url             string
+		connectionValid    bool
+		url                func(server *httptest.Server) string
+		chatroomRepo       chatroom.Repository
+		expectedChatsCount int
 	}{
-		"Valid connection": {
+		"Valid connection url": {
 			connectionValid: true,
-			url:             "ws" + strings.TrimPrefix(server.URL, "http"),
+			url: func(server *httptest.Server) string {
+				return "ws" + strings.TrimPrefix(server.URL, "http")
+			},
+			chatroomRepo: &mocks.ChatRoomRepo{
+				SaveMessageFunc: func(chatRoomID string, msg *chatroom.ChatMsg) error {
+					chatsCount++
+					return nil
+				},
+			},
+			expectedChatsCount: 200,
 		},
-		"Invalid connection": {
+		"Invalid connection url": {
 			connectionValid: false,
-			url:             server.URL,
+			url:             func(server *httptest.Server) string { return server.URL },
+		},
+		"SaveMessage err chatroom repo": {
+			connectionValid: true,
+			url: func(server *httptest.Server) string {
+				return "ws" + strings.TrimPrefix(server.URL, "http")
+			},
+			chatroomRepo: &mocks.ChatRoomRepo{
+				SaveMessageFunc: func(chatRoomID string, msg *chatroom.ChatMsg) error {
+					return errors.New("Invalid chat id !")
+				},
+			},
+			expectedChatsCount: 0,
 		},
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
-			var err error
-			connection1, _, err = websocket.DefaultDialer.Dial(testCase.url, nil)
-			if !testCase.connectionValid {
-				require.NotNil(t, err, err)
-				return
-			}
-			require.Nil(t, err, err)
-			defer connection1.Close()
+			connections := []*websocket.Conn{}
+			chatsCount = 0
+			server := httptest.NewServer(http.HandlerFunc(chatHandler.handleRequest(testCase.chatroomRepo)))
+			defer server.Close()
 
-			connection2, _, err = websocket.DefaultDialer.Dial(testCase.url, nil)
-			require.Nil(t, err, err)
-			defer connection2.Close()
-
-			for i := 0; i < 10; i++ {
-				msg := ChatMsg{
-					Message:    "Test Message 1 - " + strconv.Itoa(i),
-					SenderName: "Connection One - " + strconv.Itoa(i),
+			// setting up 20 connections .
+			for i := 0; i < 20; i++ {
+				connection, _, err := websocket.DefaultDialer.Dial(testCase.url(server), nil)
+				if !testCase.connectionValid {
+					require.NotNil(t, err, err)
+					return
 				}
-				err := connection1.WriteJSON(msg)
 				require.Nil(t, err, err)
-
-				msg1 := ChatMsg{}
-				err = connection1.ReadJSON(&msg1)
-				require.Nil(t, err, err)
-				require.Exactly(t, msg.Message, msg1.Message)
-				require.Exactly(t, msg.SenderName, msg1.SenderName)
-
-				msg2 := ChatMsg{}
-				err = connection2.ReadJSON(&msg2)
-				require.Nil(t, err, err)
-				require.Exactly(t, msg1, msg2)
+				defer connection.Close()
+				connections = append(connections, connection)
 			}
-			for i := 0; i < 10; i++ {
-				msg := ChatMsg{
-					Message:    "Test Message 2 - " + strconv.Itoa(i),
-					SenderName: "Connection Two - " + strconv.Itoa(i),
+
+			for _, connection := range connections {
+				for i := 0; i < 10; i++ {
+					msg := chatroom.ChatMsg{
+						Message:    "Test Message - " + strconv.Itoa(i),
+						SenderName: "Connection - " + strconv.Itoa(i),
+					}
+					err := connection.WriteJSON(msg)
+					require.Nil(t, err, err)
+
+					for _, conn := range connections {
+						msg := chatroom.ChatMsg{}
+						err = conn.ReadJSON(&msg)
+						require.Nil(t, err, err)
+						require.Exactly(t, msg.Message, msg.Message)
+						require.Exactly(t, msg.SenderName, msg.SenderName)
+					}
 				}
-				err := connection2.WriteJSON(msg)
-				require.Nil(t, err, err)
-
-				msg1 := ChatMsg{}
-				err = connection1.ReadJSON(&msg1)
-				require.Nil(t, err, err)
-				require.Exactly(t, msg.Message, msg1.Message)
-				require.Exactly(t, msg.SenderName, msg1.SenderName)
-
-				msg2 := ChatMsg{}
-				err = connection2.ReadJSON(&msg2)
-				require.Nil(t, err, err)
-				require.Exactly(t, msg1, msg2)
 			}
+			require.Exactly(t, testCase.expectedChatsCount, chatsCount)
 		})
 	}
 }

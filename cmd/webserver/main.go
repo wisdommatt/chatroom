@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Meghee/kit/database/mongodb"
+	"github.com/Meghee/kit/dotenv"
 	"github.com/sirupsen/logrus"
 	transportHTTP "github.com/wisdommatt/chatroom/internal/transport/http"
 )
@@ -21,6 +22,8 @@ func main() {
 }
 
 func run() error {
+	dotenv.LoadEnvironmentVariables("")
+
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{
 		PrettyPrint: true,
@@ -28,7 +31,7 @@ func run() error {
 	logger.SetReportCaller(true)
 	logger.SetOutput(os.Stdout)
 
-	mongoClient, err := mongodb.Connect(os.Getenv("MONGODB_DATABASE_URI"))
+	mongoClient, err := mongodb.Connect(os.Getenv("DATABASE_URI"))
 	if err != nil {
 		logger.WithError(err).Panic("Database connection error")
 		return err

@@ -13,6 +13,7 @@ import (
 // Repository is the interface that describes a chatroom repository object.
 type Repository interface {
 	SaveChatRoom(chatRoom *ChatRoom) error
+	SaveMessage(chatRoomID string, msg *ChatMsg) error
 }
 
 type ChatRoomRepo struct {

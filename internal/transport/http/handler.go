@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"github.com/wisdommatt/chatroom/internal/chatroom"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -36,8 +37,9 @@ func (h *Handler) SetupRoutes(database *mongo.Database) {
 	h.Router.Use(middleware.RequestID)
 	h.Router.Use(middleware.Logger)
 
+	chatroomRepo := chatroom.NewRepository(database)
 	chatHandler := newChatHandler(h.logger, h.wsUpgrader)
 	go chatHandler.wsConnectionListener()
 
-	h.Router.Get("/websocket/chat", chatHandler.handleRequest)
+	h.Router.Get("/websocket/chat", chatHandler.handleRequest(chatroomRepo))
 }

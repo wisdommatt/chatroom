@@ -6,12 +6,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"github.com/wisdommatt/chatroom/internal/chatroom"
 )
-
-type ChatMsg struct {
-	Message    string `json:"message"`
-	SenderName string `json:"senderName"`
-}
 
 type chatHandler struct {
 	logger    *logrus.Logger
@@ -19,7 +15,7 @@ type chatHandler struct {
 	clients   map[*websocket.Conn]bool
 	join      chan *websocket.Conn
 	leave     chan *websocket.Conn
-	broadcast chan ChatMsg
+	broadcast chan chatroom.ChatMsg
 }
 
 func newChatHandler(logger *logrus.Logger, upgrader websocket.Upgrader) *chatHandler {
@@ -29,33 +25,39 @@ func newChatHandler(logger *logrus.Logger, upgrader websocket.Upgrader) *chatHan
 		clients:   make(map[*websocket.Conn]bool),
 		join:      make(chan *websocket.Conn),
 		leave:     make(chan *websocket.Conn),
-		broadcast: make(chan ChatMsg),
+		broadcast: make(chan chatroom.ChatMsg),
 	}
 }
 
-func (h *chatHandler) handleRequest(rw http.ResponseWriter, r *http.Request) {
-	wsConn, err := h.upgrader.Upgrade(rw, r, nil)
-	if err != nil {
-		h.logger.WithError(err).Debug("Chat handler error")
-		return
-	}
-	defer wsConn.Close()
-	h.join <- wsConn
-	defer func() {
-		h.leave <- wsConn
-	}()
-	for {
-		msg := ChatMsg{}
-		err := wsConn.ReadJSON(&msg)
+func (h *chatHandler) handleRequest(chatRoomRepo chatroom.Repository) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		wsConn, err := h.upgrader.Upgrade(rw, r, nil)
 		if err != nil {
-			h.logger.WithError(err).Debug("Chat websocket read message error ...")
-			break
+			h.logger.WithError(err).Debug("Chat handler error")
+			return
 		}
-		h.logger.WithFields(logrus.Fields{
-			"message": msg.Message,
-			"sender":  msg.SenderName,
-		}).Info("New chat message received")
-		h.broadcast <- msg
+		defer wsConn.Close()
+		h.join <- wsConn
+		defer func() {
+			h.leave <- wsConn
+		}()
+		for {
+			msg := chatroom.ChatMsg{}
+			err := wsConn.ReadJSON(&msg)
+			if err != nil {
+				h.logger.WithError(err).Debug("Chat websocket read message error ...")
+				break
+			}
+			h.logger.WithFields(logrus.Fields{
+				"message": msg.Message,
+				"sender":  msg.SenderName,
+			}).Info("New chat message received")
+			h.broadcast <- msg
+			err = chatRoomRepo.SaveMessage("", &msg)
+			if err != nil {
+				h.logger.WithError(err).Error("Save chat message error !")
+			}
+		}
 	}
 }
 
@@ -80,6 +82,10 @@ func (h *chatHandler) wsConnectionListener() {
 					h.logger.WithError(err).Debug("Broadcast chat message error")
 				}
 			}
+			h.logger.WithFields(logrus.Fields{
+				"message":    msg.Message,
+				"senderName": msg.SenderName,
+			}).Info("Message broadcast successful")
 		}
 	}
 }
