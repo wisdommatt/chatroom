@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Handler struct {
@@ -28,7 +29,7 @@ func NewHandler(logger *logrus.Logger) *Handler {
 }
 
 // SetupRoutes sets up all the application routes.
-func (h *Handler) SetupRoutes() {
+func (h *Handler) SetupRoutes(database *mongo.Database) {
 	h.logger.Info("Setting up routes")
 	h.Router = chi.NewRouter()
 	h.Router.Use(middleware.RealIP)
