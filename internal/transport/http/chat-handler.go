@@ -11,36 +11,45 @@ import (
 )
 
 type chatHandler struct {
-	logger    *logrus.Logger
-	upgrader  websocket.Upgrader
-	clients   map[*websocket.Conn]bool
-	join      chan *websocket.Conn
-	leave     chan *websocket.Conn
-	broadcast chan chatroom.ChatMsg
+	logger          *logrus.Logger
+	chatroomRepo    chatroom.Repository
+	activeChatRooms map[string]*room
 }
 
-func newChatHandler(logger *logrus.Logger, upgrader websocket.Upgrader) *chatHandler {
+func newChatHandler(logger *logrus.Logger, repo chatroom.Repository) *chatHandler {
 	return &chatHandler{
-		logger:    logger,
-		upgrader:  upgrader,
-		clients:   make(map[*websocket.Conn]bool),
-		join:      make(chan *websocket.Conn),
-		leave:     make(chan *websocket.Conn),
-		broadcast: make(chan chatroom.ChatMsg),
+		logger:          logger,
+		chatroomRepo:    repo,
+		activeChatRooms: make(map[string]*room),
 	}
 }
 
-func (h *chatHandler) handleRequest(chatRoomRepo chatroom.Repository) http.HandlerFunc {
+func (h *chatHandler) getRoom(id string) *room {
+	if _, exist := h.activeChatRooms[id]; !exist {
+		r := &room{
+			join:      make(chan *websocket.Conn),
+			leave:     make(chan *websocket.Conn),
+			broadcast: make(chan chatroom.ChatMsg),
+			handler:   h,
+		}
+		h.activeChatRooms[id] = r
+		go r.run(id)
+	}
+	return h.activeChatRooms[id]
+}
+
+func (h *chatHandler) handleRequest(upgrader websocket.Upgrader) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		wsConn, err := h.upgrader.Upgrade(rw, r, nil)
+		chatRoom := h.getRoom("hello")
+		wsConn, err := upgrader.Upgrade(rw, r, nil)
 		if err != nil {
 			h.logger.WithError(err).Debug("Chat handler error")
 			return
 		}
 		defer wsConn.Close()
-		h.join <- wsConn
+		chatRoom.join <- wsConn
 		defer func() {
-			h.leave <- wsConn
+			chatRoom.leave <- wsConn
 		}()
 		for {
 			msg := chatroom.ChatMsg{}
@@ -49,45 +58,54 @@ func (h *chatHandler) handleRequest(chatRoomRepo chatroom.Repository) http.Handl
 				h.logger.WithError(err).Debug("Chat websocket read message error ...")
 				break
 			}
-			h.logger.WithFields(logrus.Fields{
-				"message": msg.Message,
-				"sender":  msg.SenderName,
-			}).Info("New chat message received")
-			h.broadcast <- msg
+			h.logger.Info("New chat message received")
 			msg.TimeSent = time.Now()
-			err = chatRoomRepo.SaveMessage("", &msg)
-			if err != nil {
-				h.logger.WithError(err).Error("Save chat message error !")
-			}
+			chatRoom.broadcast <- msg
 		}
 	}
 }
 
-func (h *chatHandler) wsConnectionListener() {
-	h.logger.Info("Listening for websocket clients connections / disconnections ")
+type room struct {
+	join      chan *websocket.Conn
+	leave     chan *websocket.Conn
+	broadcast chan chatroom.ChatMsg
+	handler   *chatHandler
+}
+
+func (room *room) run(roomID string) {
+	logger := room.handler.logger
+	chatroomRepo := room.handler.chatroomRepo
+	logger.Info("Listening for websocket clients connections / disconnections ")
+	clients := make(map[*websocket.Conn]bool)
 	for {
 		select {
-		case client := <-h.join:
-			h.logger.Info("New client joining ...")
-			h.clients[client] = true
+		case client := <-room.join:
+			logger.Info("New client joining ...")
+			clients[client] = true
 
-		case client := <-h.leave:
-			h.logger.Info("Client leaving ...")
-			delete(h.clients, client)
+		case client := <-room.leave:
+			logger.Info("Client leaving ...")
+			delete(clients, client)
+			if len(clients) == 0 {
+				delete(room.handler.activeChatRooms, roomID)
+				break
+			}
 
-		case msg := <-h.broadcast:
+		// broadcast channel broadcasts a message and also save it in the database.
+		case msg := <-room.broadcast:
 			// converting msg to JSON bytes to make the message broadcast process faster.
 			msgJSONBytes, _ := json.Marshal(msg)
-			for client := range h.clients {
+			for client := range clients {
 				err := client.WriteMessage(websocket.TextMessage, msgJSONBytes)
 				if err != nil {
-					h.logger.WithError(err).Debug("Broadcast chat message error")
+					logger.WithError(err).Debug("Broadcast chat message error")
 				}
 			}
-			h.logger.WithFields(logrus.Fields{
-				"message":    msg.Message,
-				"senderName": msg.SenderName,
-			}).Info("Message broadcast successful")
+			logger.Info("Message broadcast successful")
+			err := chatroomRepo.SaveMessage(roomID, &msg)
+			if err != nil {
+				logger.WithError(err).Error("Save chat message error !")
+			}
 		}
 	}
 }

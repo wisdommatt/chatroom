@@ -1,7 +1,6 @@
 package http
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,29 +21,20 @@ func TestWsChatHandler(t *testing.T) {
 	logger.SetOutput(outFile)
 	logger.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
 
-	chatsCount := 0
-	handler := NewHandler(logger)
-	chatHandler := newChatHandler(logger, handler.wsUpgrader)
-	go chatHandler.wsConnectionListener()
-
+	chatroomRepo := &mocks.ChatRoomRepo{
+		SaveMessageFunc: func(chatRoomID string, msg *chatroom.ChatMsg) error {
+			return nil
+		},
+	}
 	testCases := map[string]struct {
-		connectionValid    bool
-		url                func(server *httptest.Server) string
-		chatroomRepo       chatroom.Repository
-		expectedChatsCount int
+		connectionValid bool
+		url             func(server *httptest.Server) string
 	}{
 		"Valid connection url": {
 			connectionValid: true,
 			url: func(server *httptest.Server) string {
 				return "ws" + strings.TrimPrefix(server.URL, "http")
 			},
-			chatroomRepo: &mocks.ChatRoomRepo{
-				SaveMessageFunc: func(chatRoomID string, msg *chatroom.ChatMsg) error {
-					chatsCount++
-					return nil
-				},
-			},
-			expectedChatsCount: 200,
 		},
 		"Invalid connection url": {
 			connectionValid: false,
@@ -55,19 +45,15 @@ func TestWsChatHandler(t *testing.T) {
 			url: func(server *httptest.Server) string {
 				return "ws" + strings.TrimPrefix(server.URL, "http")
 			},
-			chatroomRepo: &mocks.ChatRoomRepo{
-				SaveMessageFunc: func(chatRoomID string, msg *chatroom.ChatMsg) error {
-					return errors.New("Invalid chat id !")
-				},
-			},
-			expectedChatsCount: 0,
 		},
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
+			handler := NewHandler(logger)
+			chatHandler := newChatHandler(logger, chatroomRepo)
+
 			connections := []*websocket.Conn{}
-			chatsCount = 0
-			server := httptest.NewServer(http.HandlerFunc(chatHandler.handleRequest(testCase.chatroomRepo)))
+			server := httptest.NewServer(http.HandlerFunc(chatHandler.handleRequest(handler.wsUpgrader)))
 			defer server.Close()
 
 			// setting up 20 connections .
@@ -100,7 +86,6 @@ func TestWsChatHandler(t *testing.T) {
 					}
 				}
 			}
-			require.Exactly(t, testCase.expectedChatsCount, chatsCount)
 		})
 	}
 }

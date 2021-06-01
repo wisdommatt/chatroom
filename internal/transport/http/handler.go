@@ -38,8 +38,7 @@ func (h *Handler) SetupRoutes(database *mongo.Database) {
 	h.Router.Use(middleware.Logger)
 
 	chatroomRepo := chatroom.NewRepository(database)
-	chatHandler := newChatHandler(h.logger, h.wsUpgrader)
-	go chatHandler.wsConnectionListener()
+	chatHandler := newChatHandler(h.logger, chatroomRepo)
 
-	h.Router.Get("/websocket/chat", chatHandler.handleRequest(chatroomRepo))
+	h.Router.Get("/websocket/chat", chatHandler.handleRequest(h.wsUpgrader))
 }
