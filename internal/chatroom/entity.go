@@ -10,6 +10,7 @@ type ChatRoom struct {
 	ID        string    `json:"id" bson:"_id,omitempty"`
 	Name      string    `json:"name" bson:"name,omitempty" validate:"required"`
 	DeletePin string    `json:"deletePin" bson:"deletePin,omitempty" validate:"required,min=30"`
+	URL       string    `json:"url" bson:"url,omitempty" validate:"required,min=20"`
 	TimeAdded time.Time `json:"timeAdded" bson:"timeAdded,omitempty" validate:"required"`
 	Chats     []ChatMsg `json:"chats" bson:"chats,omitempty"`
 }

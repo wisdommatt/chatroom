@@ -67,9 +67,11 @@ func HandleCreateChatRoom(chatroomRepo chatroom.Repository) http.HandlerFunc {
 			web.JSONErrorResponse(rw, http.StatusBadRequest, "Invalid JSON payload !")
 			return
 		}
+		strGen := randgen.NewStringGenerator()
 		newChatRoom := chatroom.ChatRoom{
 			Name:      chatRoom.Name,
-			DeletePin: randgen.NewStringGenerator().GenerateFromSource(randgen.StringAlphaNumericSource, 50),
+			URL:       strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 20),
+			DeletePin: strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 50),
 			TimeAdded: time.Now(),
 		}
 		err = chatroomRepo.SaveChatRoom(&newChatRoom)
