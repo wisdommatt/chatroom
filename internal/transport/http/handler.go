@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"time"
@@ -52,7 +53,7 @@ func (h *Handler) SetupRoutes(database *mongo.Database) {
 	h.Router.Get("/assets/*", router.FileRouter("./static/assets", "/assets/"))
 	h.Router.Get("/", handleIndexPage)
 	h.Router.Get("/websocket/chat", chatHandler.handleRequest(h.wsUpgrader))
-	h.Router.Post("/chatroom", handleCreateChatRoom(chatroomRepo))
+	h.Router.Post("/chatroom/", handleCreateChatRoom(chatroomRepo, h.logger))
 }
 
 // handleIndexPage is the route handler for index page.
@@ -70,7 +71,7 @@ func (entity *createChatRoomPayload) validate() error {
 }
 
 // handleCreateChatRoom is the route handler for creat chatroom endpoint.
-func handleCreateChatRoom(chatroomRepo chatroom.Repository) http.HandlerFunc {
+func handleCreateChatRoom(chatroomRepo chatroom.Repository, logger *logrus.Logger) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var chatRoom createChatRoomPayload
 		json.DecodeAndEscapeHTML(r.Body, &chatRoom)
@@ -88,9 +89,11 @@ func handleCreateChatRoom(chatroomRepo chatroom.Repository) http.HandlerFunc {
 		}
 		err = chatroomRepo.SaveChatRoom(&newChatRoom)
 		if err != nil {
+			logger.WithError(err).Debug("An error occured while saving chatroom in DB")
 			web.JSONErrorResponse(rw, http.StatusInternalServerError, "An error occured while creating chatroom !")
 			return
 		}
+		logger.Info(fmt.Sprintf("Chatroom created successfully %s %s", newChatRoom.Name, newChatRoom.ID))
 		web.JSONResponse(rw, http.StatusOK, map[string]interface{}{
 			"status":   "success",
 			"message":  "Chat room created successfully !",

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/wisdommatt/chatroom/internal/chatroom"
 	"github.com/wisdommatt/chatroom/test/mocks"
@@ -51,7 +52,7 @@ func TestHandleCreateChatRoom(t *testing.T) {
 
 			r := chi.NewRouter()
 			rec := httptest.NewRecorder()
-			r.Post("/chatroom", handleCreateChatRoom(testCase.chatroomRepo))
+			r.Post("/chatroom", handleCreateChatRoom(testCase.chatroomRepo, &logrus.Logger{}))
 			req := httptest.NewRequest("POST", "/chatroom", bytes.NewBuffer(payloadJSON))
 			r.ServeHTTP(rec, req)
 			require.Exactly(t, testCase.expectedStatusCode, rec.Result().StatusCode)
