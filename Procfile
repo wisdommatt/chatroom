@@ -1,1 +1,1 @@
-web: bin/sirri-chatroom
+web: bin/webserver
