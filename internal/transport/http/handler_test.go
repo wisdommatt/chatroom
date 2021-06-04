@@ -51,7 +51,7 @@ func TestHandleCreateChatRoom(t *testing.T) {
 
 			r := chi.NewRouter()
 			rec := httptest.NewRecorder()
-			r.Post("/chatroom", HandleCreateChatRoom(testCase.chatroomRepo))
+			r.Post("/chatroom", handleCreateChatRoom(testCase.chatroomRepo))
 			req := httptest.NewRequest("POST", "/chatroom", bytes.NewBuffer(payloadJSON))
 			r.ServeHTTP(rec, req)
 			require.Exactly(t, testCase.expectedStatusCode, rec.Result().StatusCode)

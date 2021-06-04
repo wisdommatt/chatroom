@@ -1,8 +1,11 @@
 package http
 
 import (
+	"html/template"
 	"net/http"
 	"time"
+
+	"github.com/Meghee/kit/router"
 
 	"github.com/Meghee/kit/web"
 
@@ -46,7 +49,16 @@ func (h *Handler) SetupRoutes(database *mongo.Database) {
 	chatroomRepo := chatroom.NewRepository(database)
 	chatHandler := newChatHandler(h.logger, chatroomRepo)
 
+	h.Router.Get("/assets/*", router.FileRouter("./static/assets", "/assets/"))
+	h.Router.Get("/", handleIndexPage)
 	h.Router.Get("/websocket/chat", chatHandler.handleRequest(h.wsUpgrader))
+	h.Router.Post("/chatroom", handleCreateChatRoom(chatroomRepo))
+}
+
+// handleIndexPage is the route handler for index page.
+func handleIndexPage(rw http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.New("index.html").ParseFiles("./static/templates/index.html"))
+	t.Execute(rw, nil)
 }
 
 type createChatRoomPayload struct {
@@ -57,8 +69,8 @@ func (entity *createChatRoomPayload) validate() error {
 	return validator.New().Struct(entity)
 }
 
-// HandleCreateChatRoom is the route handler for creat chatroom endpoint.
-func HandleCreateChatRoom(chatroomRepo chatroom.Repository) http.HandlerFunc {
+// handleCreateChatRoom is the route handler for creat chatroom endpoint.
+func handleCreateChatRoom(chatroomRepo chatroom.Repository) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var chatRoom createChatRoomPayload
 		json.DecodeAndEscapeHTML(r.Body, &chatRoom)
