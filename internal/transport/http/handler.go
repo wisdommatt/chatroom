@@ -66,7 +66,7 @@ func handleIndexPage(rw http.ResponseWriter, r *http.Request) {
 
 type createChatRoomPayload struct {
 	Name       string `json:"name" validate:"required"`
-	InviteCode string `json:"inviteCode" validate:"required"`
+	InviteCode string `json:"inviteCode"`
 }
 
 func (entity *createChatRoomPayload) validate() error {
@@ -119,7 +119,6 @@ func handleCreateChatRoom(chatroomRepo chatroom.Repository, logger *logrus.Logge
 			"message":   "Chat room created successfully !",
 			"roomUrl":   newChatRoom.URL,
 			"actionPin": rawRoomPin,
-			"chatroom":  newChatRoom,
 		})
 	}
 }
