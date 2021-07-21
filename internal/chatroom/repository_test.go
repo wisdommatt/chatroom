@@ -33,7 +33,7 @@ func TestSaveChatRoom(t *testing.T) {
 		"empty entity": {},
 		"complete entity": {
 			Name:      "Sample Chat",
-			DeletePin: randgen.NewStringGenerator().GenerateFromSource(randgen.StringAlphaNumericSource, 50),
+			RoomPin:   randgen.NewStringGenerator().GenerateFromSource(randgen.StringAlphaNumericSource, 50),
 			TimeAdded: time.Now(),
 			Chats: []ChatMsg{
 				{

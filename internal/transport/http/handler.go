@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Meghee/kit/router"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/Meghee/kit/web"
 
@@ -63,10 +65,12 @@ func handleIndexPage(rw http.ResponseWriter, r *http.Request) {
 }
 
 type createChatRoomPayload struct {
-	Name string `json:"name" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	InviteCode string `json:"inviteCode" validate:"required"`
 }
 
 func (entity *createChatRoomPayload) validate() error {
+	entity.InviteCode = strings.ToLower(entity.InviteCode)
 	return validator.New().Struct(entity)
 }
 
@@ -80,24 +84,42 @@ func handleCreateChatRoom(chatroomRepo chatroom.Repository, logger *logrus.Logge
 			web.JSONErrorResponse(rw, http.StatusBadRequest, "Invalid JSON payload !")
 			return
 		}
+		// hashing invite code.
+		if chatRoom.InviteCode != "" {
+			hashedCode, err := bcrypt.GenerateFromPassword([]byte(chatRoom.InviteCode), bcrypt.MinCost)
+			if err != nil {
+				logger.WithField("inviteCode", chatRoom.InviteCode).WithError(err).
+					Error("An error occured while hashing invite code")
+				web.JSONErrorResponse(rw, http.StatusInternalServerError, "An error occured, please try again later !")
+				return
+			}
+			chatRoom.InviteCode = string(hashedCode)
+		}
 		strGen := randgen.NewStringGenerator()
+		rawRoomPin := strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 40)
+		// hashing room pin.
+		hashedPin, _ := bcrypt.GenerateFromPassword([]byte(rawRoomPin), bcrypt.MinCost)
+		roomPin := string(hashedPin)
 		newChatRoom := chatroom.ChatRoom{
-			Name:      chatRoom.Name,
-			URL:       strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 20),
-			DeletePin: strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 50),
-			TimeAdded: time.Now(),
+			Name:       chatRoom.Name,
+			URL:        strGen.GenerateFromSource(randgen.StringAlphaNumericSource, 25),
+			InviteCode: chatRoom.InviteCode,
+			RoomPin:    roomPin,
+			TimeAdded:  time.Now(),
 		}
 		err = chatroomRepo.SaveChatRoom(&newChatRoom)
 		if err != nil {
-			logger.WithError(err).Debug("An error occured while saving chatroom in DB")
+			logger.WithError(err).Error("An error occured while saving chatroom in DB")
 			web.JSONErrorResponse(rw, http.StatusInternalServerError, "An error occured while creating chatroom !")
 			return
 		}
 		logger.Info(fmt.Sprintf("Chatroom created successfully %s %s", newChatRoom.Name, newChatRoom.ID))
 		web.JSONResponse(rw, http.StatusOK, map[string]interface{}{
-			"status":   "success",
-			"message":  "Chat room created successfully !",
-			"chatroom": newChatRoom,
+			"status":    "success",
+			"message":   "Chat room created successfully !",
+			"roomUrl":   newChatRoom.URL,
+			"actionPin": rawRoomPin,
+			"chatroom":  newChatRoom,
 		})
 	}
 }
