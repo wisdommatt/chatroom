@@ -63,7 +63,8 @@ func TestHandleCreateChatRoom(t *testing.T) {
 			if rec.Result().StatusCode == http.StatusOK {
 				require.Exactly(t, "success", apiResponse["status"])
 				require.NotEmpty(t, apiResponse["message"])
-				require.NotEmpty(t, apiResponse["chatroom"].(map[string]interface{})["deletePin"])
+				require.NotEmpty(t, apiResponse["actionPin"])
+				require.NotEmpty(t, apiResponse["roomUrl"])
 			}
 		})
 	}

@@ -13,5 +13,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/wisdommatt/randgen v0.0.0-20210505100106-51bb1b28569c
 	go.mongodb.org/mongo-driver v1.5.2
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
