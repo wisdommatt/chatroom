@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/tailwindcss/dist/tailwind.min.css" />
+    <title>Chat Room</title>
+</head>
+
+<body>
+
+    <!-- component -->
+    <div class="flex-1 p:2 justify-between flex flex-col h-screen">
+        <div class="flex sm:items-center justify-between py-3 border-b-2 border-gray-200">
+            <div class="flex items-center space-x-4">
+                <div class="flex flex-col leading-tight px-3">
+                    <div class="text-2xl mt-1 flex items-center">
+                        <span class="text-gray-700 mr-3">Board Meeting</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 px-5">
+                <button type="button"
+                    class="inline-flex items-center justify-center rounded-full h-10 w-10 transition duration-500 ease-in-out text-gray-500 hover:bg-gray-300 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                        <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                      </svg>
+                </button>
+            </div>
+        </div>
+        <div style="background-image: url(/assets/images/chatroom-bg.png);" id="messages"
+            class="h-full flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
+            <div class="chat-message">
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                        <div class="">
+                            <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
+                                Can be verified on any platform using docker
+                                <br>
+                                <span class="inline-block float-right mt-1">23:03</span>
+                            </span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJdhfhfrccd4e" alt="Profile image"
+                        class="w-14 h-14 rounded-full order-1">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end justify-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                        <!-- <span class="float-left py-1 inline-block w-full font-mono font-extrabold text-gray-800">Elon Musk</span> -->
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-500 text-white ">Your
+                                error message says permission denied, npm global installs must be given root
+                                privileges.</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJDkskAKDIAL" alt="My profile"
+                        class="w-14 h-14 rounded-full order-2">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                        <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">Command was run
+                                with root privileges. I'm sure about that.
+                                <br>
+                                <span class="inline-block float-right mt-1">23:03</span>
+                            </span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">I've update the
+                                description so it's more obviously now</span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">FYI
+                                https://askubuntu.com/a/700266/510172</span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">
+                                Check the line above (it ends with a # so, I'm running it as root )
+                                <pre># npm install -g @vue/devtools</pre>
+                            </span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJdhfhfrccd4e" alt="My profile"
+                        class="w-14 h-14 rounded-full order-1">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end justify-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                        <!-- <span class="float-left py-1 inline-block w-full font-mono font-extrabold text-gray-800">Elon Musk</span> -->
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-500 text-white ">Any
+                                updates on this issue? I'm getting the same error when trying to install devtools.
+                                Thanks</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJDkskAKDIAL" alt="My profile"
+                        class="w-14 h-14 rounded-full order-2">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                        <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span>
+                        <div>
+                            <span
+                                class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">Thanks
+                                for your message David. I thought I'm alone with this issue. Please, 👍 the issue to
+                                support it :)</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJdhfhfrccd4e" alt="My profile"
+                        class="w-14 h-14 rounded-full order-1">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end justify-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                        <!-- <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span> -->
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-blue-500 text-white ">Are you using
+                                sudo?</span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-500 text-white ">Run
+                                this command sudo chown -R `whoami` /Users/...your_user_profile.../.npm-global/ then
+                                install the package globally without using sudo</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJDkskAKDIAL" alt="My profile"
+                        class="w-14 h-14 rounded-full order-2">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                        <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">It seems like you
+                                are from Mac OS world. There is no /Users/ folder on linux 😄</span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">I
+                                have no issue with any other packages installed with root permission globally.</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJdhfhfrccd4e" alt="My profile"
+                        class="w-14 h-14 rounded-full order-1">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end justify-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-1 items-end">
+                        <!-- <span class="float-left py-1 inline-block w-full font-mono font-extrabold text-gray-800">Elon Musk</span> -->
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-blue-500 text-white ">yes,
+                                I have a mac. I never had issues with root permission as well, but this helped me to
+                                solve the problem</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJDkskAKDIAL" alt="My profile"
+                        class="w-14 h-14 rounded-full order-2">
+                </div>
+            </div>
+            <div class="chat-message">
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
+                        <span class="py-1 inline-block w-full font-mono font-extrabold text-gray-800">Wisdommatt</span>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">I get the same
+                                error on Arch Linux (also with sudo)</span>
+                        </div>
+                        <div>
+                            <span class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">I also have this
+                                issue, Here is what I was doing until now: #1076</span>
+                        </div>
+                        <div>
+                            <span
+                                class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-gray-300 text-gray-600">even
+                                i am facing</span>
+                        </div>
+                    </div>
+                    <img src="https://robohash.org/AJdhfhfrccd4e" alt="My profile"
+                        class="w-14 h-14 rounded-full order-1">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-300 h-24"></div>
+
+        <div class="border-t-2 border-gray-200 mt-10 px-4 pt-4 py-3 fixed inset-x-0 bottom-0">
+            <div class="relative flex">
+                
+                <input type="text" placeholder="Write Something"
+                    class="w-full focus:outline-none focus:placeholder-gray-400 text-gray-600 placeholder-gray-600 pl-12 bg-gray-200 rounded-full py-3">
+                <div class="absolute right-0 items-center inset-y-0 sm:flex">
+                    <button type="button"
+                        class="inline-flex items-center justify-center rounded-full h-12 w-12 transition duration-500 ease-in-out text-white bg-blue-500 hover:bg-blue-400 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 20 20" fill="currentColor"
+                            class="h-6 w-6 transform rotate-90">
+                            <path
+                                d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .scrollbar-w-2::-webkit-scrollbar {
+            width: 0.25rem;
+            height: 0.25rem;
+        }
+
+        .scrollbar-track-blue-lighter::-webkit-scrollbar-track {
+            --bg-opacity: 1;
+            background-color: #f7fafc;
+            background-color: rgba(247, 250, 252, var(--bg-opacity));
+        }
+
+        .scrollbar-thumb-blue::-webkit-scrollbar-thumb {
+            --bg-opacity: 1;
+            background-color: #edf2f7;
+            background-color: rgba(237, 242, 247, var(--bg-opacity));
+        }
+
+        .scrollbar-thumb-rounded::-webkit-scrollbar-thumb {
+            border-radius: 0.25rem;
+        }
+    </style>
+
+    <script>
+        const el = document.getElementById('messages')
+        el.scrollTop = el.scrollHeight
+    </script>
+
+</body>
+
+</html>

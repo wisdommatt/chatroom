@@ -33,17 +33,17 @@ func TestWsChatHandler(t *testing.T) {
 		"Valid connection url": {
 			connectionValid: true,
 			url: func(server *httptest.Server) string {
-				return "ws" + strings.TrimPrefix(server.URL, "http")
+				return "ws" + strings.TrimPrefix(server.URL, "http") + "?roomId=hello"
 			},
 		},
 		"Invalid connection url": {
 			connectionValid: false,
-			url:             func(server *httptest.Server) string { return server.URL },
+			url:             func(server *httptest.Server) string { return server.URL + "?roomId=hello" },
 		},
 		"SaveMessage err chatroom repo": {
 			connectionValid: true,
 			url: func(server *httptest.Server) string {
-				return "ws" + strings.TrimPrefix(server.URL, "http")
+				return "ws" + strings.TrimPrefix(server.URL, "http") + "?roomId=hello"
 			},
 		},
 	}
