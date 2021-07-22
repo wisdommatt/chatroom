@@ -4,74 +4,22 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/Meghee/kit/router"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/Meghee/kit/web"
 
 	"github.com/Meghee/kit/json"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-playground/validator"
-	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"github.com/wisdommatt/chatroom/internal/chatroom"
 	"github.com/wisdommatt/randgen"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type Handler struct {
-	Router     chi.Router
-	wsUpgrader websocket.Upgrader
-	logger     *logrus.Logger
-}
-
-// NewHandler returns a new HTTP transport handler.
-func NewHandler(logger *logrus.Logger) *Handler {
-	return &Handler{
-		wsUpgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin:     func(r *http.Request) bool { return true },
-		},
-		logger: logger,
-	}
-}
-
-// SetupRoutes sets up all the application routes.
-func (h *Handler) SetupRoutes(database *mongo.Database) {
-	h.logger.Info("Setting up routes")
-	h.Router = chi.NewRouter()
-	h.Router.Use(middleware.RealIP)
-	h.Router.Use(middleware.RequestID)
-	h.Router.Use(middleware.Logger)
-
-	chatroomRepo := chatroom.NewRepository(database)
-	chatHandler := newChatHandler(h.logger, chatroomRepo)
-
-	h.Router.Get("/assets/*", router.FileRouter("./static/assets", "/assets/"))
-	h.Router.Get("/", handleIndexPage)
-	h.Router.Get("/websocket/chat", chatHandler.handleRequest(h.wsUpgrader))
-	h.Router.Post("/chatroom/", handleCreateChatRoom(chatroomRepo, h.logger))
-}
 
 // handleIndexPage is the route handler for index page.
 func handleIndexPage(rw http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("index.html").ParseFiles("./static/templates/index.html"))
 	t.Execute(rw, nil)
-}
-
-type createChatRoomPayload struct {
-	Name       string `json:"name" validate:"required"`
-	InviteCode string `json:"inviteCode"`
-}
-
-func (entity *createChatRoomPayload) validate() error {
-	entity.InviteCode = strings.ToLower(entity.InviteCode)
-	return validator.New().Struct(entity)
 }
 
 // handleCreateChatRoom is the route handler for creat chatroom endpoint.
@@ -120,5 +68,13 @@ func handleCreateChatRoom(chatroomRepo chatroom.Repository, logger *logrus.Logge
 			"roomUrl":   newChatRoom.URL,
 			"actionPin": rawRoomPin,
 		})
+	}
+}
+
+// handleOpenChatRoomPage is the route handler for chatroom view page.
+func handleOpenChatRoomPage(logger *logrus.Logger) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		t := template.Must(template.New("chatroom.html").ParseFiles("./static/templates/chatroom.html"))
+		t.Execute(rw, nil)
 	}
 }
