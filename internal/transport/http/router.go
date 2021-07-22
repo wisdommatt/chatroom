@@ -43,7 +43,7 @@ func (h *Handler) SetupRoutes(database *mongo.Database) {
 
 	h.Router.Get("/assets/*", router.FileRouter("./static/assets", "/assets/"))
 	h.Router.Get("/", handleIndexPage)
-	h.Router.Get("/websocket/chat", chatHandler.handleRequest(h.wsUpgrader))
+	h.Router.Get("/websocket/chat/{roomId}", chatHandler.handleRequest(h.wsUpgrader))
 	h.Router.Post("/chatroom/", handleCreateChatRoom(chatroomRepo, h.logger))
 	h.Router.Get("/cr/{roomId}", handleOpenChatRoomPage(chatHandler.logger))
 }

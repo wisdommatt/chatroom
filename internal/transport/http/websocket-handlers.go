@@ -40,13 +40,17 @@ func (h *chatHandler) getRoom(id string) *room {
 
 func (h *chatHandler) handleRequest(upgrader websocket.Upgrader) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		chatRoom := h.getRoom("hello")
 		wsConn, err := upgrader.Upgrade(rw, r, nil)
 		if err != nil {
 			h.logger.WithError(err).Debug("Chat handler error")
 			return
 		}
 		defer wsConn.Close()
+		roomId := r.URL.Query().Get("roomId")
+		if roomId == "" {
+			return
+		}
+		chatRoom := h.getRoom(roomId)
 		chatRoom.join <- wsConn
 		defer func() {
 			chatRoom.leave <- wsConn
